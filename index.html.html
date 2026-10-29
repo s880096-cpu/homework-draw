@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>作業抽查箱</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='24' width='44' height='32' rx='9' fill='%23F6D27A' stroke='%233E3A39' stroke-width='4'/%3E%3Crect x='6' y='16' width='52' height='12' rx='6' fill='%23F2A497' stroke='%233E3A39' stroke-width='4'/%3E%3Ccircle cx='24' cy='40' r='3' fill='%233E3A39'/%3E%3Ccircle cx='40' cy='40' r='3' fill='%233E3A39'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FFFCF6; --ink:#3E3A39; --muted:#6B6462;
+  --coral:#F2A497; --yellow:#F6D27A; --aqua:#A8D3E6; --green:#B9DAA5;
+  --line:3px solid var(--ink); --r:28px;
+}
+*{box-sizing:border-box}
+html{color-scheme:light;scroll-padding-top:84px}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Huninn","jf-openhuninn","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  font-size:16px;line-height:1.6;
+  padding-top:calc(62px + env(safe-area-inset-top,0px));
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  -webkit-text-size-adjust:100%;
+}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--ink);outline-offset:3px;border-radius:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.wrap{max-width:720px;margin:0 auto;padding:0 16px}
+
+/* ---------- 頂端固定選單 ---------- */
+.nav{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  background:var(--paper);border-bottom:var(--line);
+  padding-top:env(safe-area-inset-top,0px);
+}
+.nav-in{max-width:720px;margin:0 auto;height:58px;padding:0 12px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand{display:flex;align-items:center;gap:8px;text-decoration:none;color:inherit;font-size:18px;white-space:nowrap}
+.brand svg{width:36px;height:36px;flex:none}
+.links{display:flex;gap:4px}
+body.locked .links{visibility:hidden}
+body.locked #relock{display:none}
+[hidden]{display:none!important}
+.links a{
+  display:flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;
+  border:3px solid transparent;border-radius:999px;color:inherit;text-decoration:none;font-size:15px;
+}
+.links a svg{width:20px;height:20px;display:none;flex:none}
+.links a[aria-current="true"]{background:var(--yellow);border-color:var(--ink)}
+@media (max-width:359px){.brand span{display:none}}
+@media (min-width:480px){.links a svg{display:block}.links a{padding:0 14px}}
+
+/* ---------- 共用元件 ---------- */
+section{padding-top:30px}
+.h2{font-size:24px;line-height:1.3;display:flex;align-items:center;gap:10px}
+.h2 svg{width:30px;height:30px;flex:none}
+.lead{color:var(--muted);font-size:15px;margin-top:4px}
+.panel{border:var(--line);border-radius:var(--r);background:var(--paper);padding:16px 18px}
+.btn{
+  min-height:44px;padding:0 18px;cursor:pointer;
+  border:var(--line);border-radius:999px;background:var(--paper);
+}
+.btn:active{transform:translateY(2px)}
+.btn[disabled]{opacity:.55;cursor:default;transform:none}
+.btn.sm{min-height:44px;padding:0 14px;font-size:15px}
+.btn.aqua{background:var(--aqua)}
+.btn.yellow{background:var(--yellow)}
+.btn.green{background:var(--green)}
+
+/* ---------- 首頁插圖 ---------- */
+.hero{padding-top:16px}
+.scene-box{border:var(--line);border-radius:34px;background:var(--paper);overflow:hidden}
+.scene{display:block;width:100%;height:auto}
+.hero h1{font-size:30px;line-height:1.3;margin-top:18px}
+.hero p{color:var(--muted);margin-top:4px}
+
+/* ---------- 抽籤面板 ---------- */
+.draw{margin-top:18px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0}
+.row+.row{border-top:2px dashed var(--ink)}
+.row .t{font-size:17px;line-height:1.35}
+.row .t small{display:block;color:var(--muted);font-size:14px}
+.stepper{display:inline-flex;align-items:center;gap:8px}
+.stepper button{width:46px;height:46px;padding:0;border-radius:50%;background:var(--aqua);font-size:26px;line-height:1;cursor:pointer;border:var(--line)}
+.stepper button:active{transform:translateY(2px)}
+.stepper output{min-width:40px;text-align:center;font-size:28px;line-height:1}
+.switch{
+  position:relative;flex:none;width:62px;height:36px;padding:0;cursor:pointer;
+  border:var(--line);border-radius:999px;background:var(--paper);
+}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--ink);transition:transform .2s}
+.switch[aria-checked="true"]{background:var(--green)}
+.switch[aria-checked="true"]::after{transform:translateX(26px)}
+.status{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 10px;margin:4px 0 14px;font-size:15px;color:var(--muted)}
+.status b{font-weight:400;color:var(--ink)}
+.go{
+  display:block;width:100%;min-height:70px;font-size:28px;letter-spacing:.08em;cursor:pointer;
+  border:var(--line);border-radius:999px;background:var(--coral);box-shadow:0 5px 0 var(--ink);
+}
+.go:active{transform:translateY(4px);box-shadow:0 1px 0 var(--ink)}
+.go[disabled]{opacity:.7;cursor:default;transform:none;box-shadow:0 5px 0 var(--ink)}
+.note{min-height:1.6em;margin-top:12px;font-size:15px;color:var(--muted)}
+
+/* ---------- 結果 ---------- */
+.res-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px}
+.res-head h3{font-size:20px}
+.results{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:12px;grid-template-columns:1fr}
+@media (min-width:560px){.results{grid-template-columns:1fr 1fr}}
+.card{display:flex;align-items:center;gap:14px;border:var(--line);border-radius:26px;padding:14px 16px;background:var(--c,var(--yellow))}
+.card.c0{--c:var(--coral)}.card.c1{--c:var(--yellow)}.card.c2{--c:var(--aqua)}.card.c3{--c:var(--green)}
+.seat{flex:none;width:58px;height:58px;display:grid;place-items:center;border:var(--line);border-radius:50%;background:var(--paper);font-size:24px;line-height:1}
+.who{min-width:0}
+.nm{font-size:26px;line-height:1.25;overflow-wrap:anywhere}
+.cl{font-size:15px}
+.card.rolling .nm{opacity:.75}
+.empty{border:3px dashed var(--ink);border-radius:26px;padding:20px 16px;text-align:center;color:var(--muted)}
+.empty svg{width:64px;height:64px;display:block;margin:0 auto 6px}
+
+/* ---------- 範圍 ---------- */
+.quick{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;align-items:center}
+.quick .sum{margin-left:auto;color:var(--muted);font-size:15px}
+.grade{margin-top:16px;border:var(--line);border-radius:var(--r);padding:14px 14px 16px}
+.grade-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.grade-h h3{font-size:19px;line-height:1;padding:8px 16px;border:var(--line);border-radius:999px;background:var(--g)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.chip{
+  display:inline-flex;align-items:baseline;gap:6px;min-height:46px;padding:0 16px;align-items:center;cursor:pointer;
+  border:3px dashed var(--ink);border-radius:999px;background:var(--paper);font-size:17px;
+}
+.chip small{font-size:13px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-style:solid;background:var(--g)}
+.chip[aria-pressed="true"]::before{content:"✓";font-size:15px}
+.chip[aria-pressed="true"] small{color:var(--ink)}
+.g1{--g:var(--coral)}.g2{--g:var(--aqua)}.g3{--g:var(--green)}
+
+/* ---------- 紀錄 ---------- */
+.log{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:12px}
+.log li{border:var(--line);border-radius:24px;padding:12px 14px}
+.when{font-size:14px;color:var(--muted)}
+.names{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.tag{border:var(--line);border-radius:999px;padding:1px 12px;font-size:16px;background:var(--c)}
+.tag.c0{--c:var(--coral)}.tag.c1{--c:var(--yellow)}.tag.c2{--c:var(--aqua)}.tag.c3{--c:var(--green)}
+.log-tools{display:flex;justify-content:flex-end;margin-top:12px}
+
+footer{padding:36px 0 44px;text-align:center;color:var(--muted);font-size:14px}
+footer svg{width:56px;height:56px;display:block;margin:0 auto 8px}
+
+/* ---------- 動態（只在沒有開啟「減少動態效果」時才動） ---------- */
+@media (prefers-reduced-motion:no-preference){
+  html{scroll-behavior:smooth}
+  .float,.twinkle,.sway,.blink{transform-box:fill-box;transform-origin:center}
+  .float{animation:float 3.4s ease-in-out infinite alternate}
+  .float.d1{animation-delay:-1.1s}.float.d2{animation-delay:-2.2s}
+  .drift{animation:drift 9s ease-in-out infinite alternate}
+  .drift.slow{animation-duration:12s;animation-direction:alternate-reverse}
+  .twinkle{animation:twinkle 2.6s ease-in-out infinite}
+  .twinkle.d1{animation-delay:-1.3s}
+  .sway{transform-origin:50% 100%;animation:sway 4s ease-in-out infinite alternate}
+  .blink{animation:blink 4.6s infinite}
+  .is-drawing .sway{animation:shake .24s linear infinite}
+  .is-drawing .float{animation-duration:.5s}
+  .pop{animation:pop .42s cubic-bezier(.3,1.6,.5,1) both}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+@keyframes float{to{transform:translateY(-6px)}}
+@keyframes drift{to{transform:translateX(16px)}}
+@keyframes twinkle{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.55}}
+@keyframes sway{from{transform:rotate(-1.5deg)}to{transform:rotate(1.5deg)}}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+@keyframes shake{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body class="locked">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="star" viewBox="-14 -14 28 28">
+      <path d="M0 -11 Q2 -2 11 0 Q2 2 0 11 Q-2 2 -11 0 Q-2 -2 0 -11Z" fill="#F6D27A" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- 頂端固定選單 -->
+<header class="nav">
+  <div class="nav-in">
+    <a class="brand" href="#draw" aria-label="作業抽查箱，回到抽籤">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="11" y="26" width="42" height="30" rx="9" fill="#F6D27A" stroke="#3E3A39" stroke-width="3"/>
+        <rect x="7" y="17" width="50" height="12" rx="6" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+        <circle cx="25" cy="40" r="3" fill="#3E3A39"/><circle cx="39" cy="40" r="3" fill="#3E3A39"/>
+        <path d="M28 46 Q32 50 36 46" fill="none" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <span>作業抽查箱</span>
+    </a>
+    <nav class="links" aria-label="主選單">
+      <a href="#draw" data-spy="draw">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#star" x="0" y="0" width="24" height="24"/></svg>抽籤
+      </a>
+      <a href="#scope" data-spy="scope">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="5" fill="#A8D3E6" stroke="#3E3A39" stroke-width="2.5"/><path d="M8 12l3 3 5-6" fill="none" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>範圍
+      </a>
+      <a href="#log" data-spy="log">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="4" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2.5"/><path d="M8 9h8M8 14h5" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round"/></svg>紀錄
+      </a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 解鎖 -->
+  <section id="lock" class="hero" aria-labelledby="t-lock" hidden>
+    <div class="panel" style="margin-top:8px;text-align:center">
+      <svg viewBox="0 0 64 64" aria-hidden="true" style="width:84px;height:84px">
+        <rect x="14" y="26" width="36" height="28" rx="9" fill="#F6D27A" stroke="#3E3A39" stroke-width="3"/>
+        <rect x="10" y="17" width="44" height="12" rx="6" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+        <path d="M24 41h6M36 41h4" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+        <path d="M28 47 Q32 49 36 47" fill="none" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      <h1 id="t-lock" style="font-size:26px;margin-top:6px">輸入密碼，打開名單</h1>
+      <p class="lead">名單是加密的，第一次要輸入密碼，之後這台裝置會記住。</p>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <label class="sr" for="pw">密碼</label>
+        <input id="pw" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="密碼"
+          style="flex:1;min-width:0;min-height:52px;font:inherit;font-size:18px;color:inherit;background:var(--paper);border:var(--line);border-radius:999px;padding:0 18px">
+        <button type="button" class="btn green" id="unlock" style="min-height:52px;font-size:18px">解鎖</button>
+      </div>
+      <p class="note" id="lockNote" role="alert"></p>
+    </div>
+  </section>
+
+  <div id="app" hidden>
+
+  <!-- 抽籤 -->
+  <section id="draw" class="hero" aria-labelledby="t-draw">
+    <div class="scene-box" id="sceneBox">
+      <svg class="scene" id="scene" viewBox="0 0 360 220" role="img" aria-label="一個微笑的抽籤箱，上方飄著幾張紙籤，旁邊有筆記本和鉛筆">
+        <!-- 雲 -->
+        <g transform="translate(18 14)"><g class="drift">
+          <path d="M24 56 C8 56 6 38 22 36 C22 20 50 16 57 32 C68 22 90 30 84 47 C98 49 96 56 84 56 Z" fill="#A8D3E6" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+        </g></g>
+        <g transform="translate(236 24)"><g class="drift slow">
+          <path d="M18 40 C6 40 5 26 17 25 C18 12 40 10 45 22 C54 15 68 22 63 34 C73 36 72 40 63 40 Z" fill="#A8D3E6" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+        </g></g>
+        <!-- 星星 -->
+        <g transform="translate(318 84)"><g class="twinkle"><use href="#star" x="-14" y="-14" width="28" height="28"/></g></g>
+        <g transform="translate(62 96)"><g class="twinkle d1"><use href="#star" x="-11" y="-11" width="22" height="22"/></g></g>
+        <!-- 丘 -->
+        <path d="M-2 176 Q90 146 180 168 T362 156 V222 H-2Z" fill="#B9DAA5" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+        <!-- 筆記本 -->
+        <g transform="translate(38 142) rotate(-7 29 23)">
+          <rect x="0" y="0" width="60" height="48" rx="9" fill="#A8D3E6" stroke="#3E3A39" stroke-width="3"/>
+          <rect x="9" y="8" width="42" height="32" rx="5" fill="#FFFCF6" stroke="#3E3A39" stroke-width="3"/>
+          <path d="M16 18h28M16 26h20" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+        </g>
+        <!-- 鉛筆 -->
+        <g transform="translate(262 184) rotate(-16)">
+          <rect x="-10" y="-6" width="12" height="12" rx="4" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+          <rect x="0" y="-6" width="48" height="12" fill="#F6D27A" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M48 -6 L66 0 L48 6 Z" fill="#FFFCF6" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M60 -2.2 L66 0 L60 2.2 Z" fill="#3E3A39"/>
+        </g>
+        <!-- 抽籤箱 -->
+        <g class="sway" id="box">
+          <g class="float"><g transform="rotate(-14 150 76)"><rect x="139" y="52" width="24" height="38" rx="5" fill="#A8D3E6" stroke="#3E3A39" stroke-width="3"/><path d="M145 62h12M145 70h8" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round"/></g></g>
+          <g class="float d1"><g transform="rotate(8 182 66)"><rect x="170" y="42" width="24" height="40" rx="5" fill="#FFFCF6" stroke="#3E3A39" stroke-width="3"/><path d="M176 52h12M176 60h8" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round"/></g></g>
+          <g class="float d2"><g transform="rotate(22 212 82)"><rect x="202" y="58" width="22" height="36" rx="5" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/><path d="M208 68h10M208 76h7" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round"/></g></g>
+          <rect x="128" y="100" width="104" height="78" rx="20" fill="#F6D27A" stroke="#3E3A39" stroke-width="3"/>
+          <rect x="120" y="88" width="120" height="24" rx="12" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+          <rect x="158" y="96" width="44" height="7" rx="3.5" fill="#3E3A39"/>
+          <g class="blink"><circle cx="156" cy="134" r="5" fill="#3E3A39"/></g>
+          <g class="blink"><circle cx="204" cy="134" r="5" fill="#3E3A39"/></g>
+          <circle cx="142" cy="148" r="8" fill="#F2A497"/>
+          <circle cx="218" cy="148" r="8" fill="#F2A497"/>
+          <path d="M171 146 Q180 156 189 146" fill="none" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+          <rect x="142" y="176" width="24" height="10" rx="5" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+          <rect x="194" y="176" width="24" height="10" rx="5" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>
+
+    <h1 id="t-draw">今天，抽誰來交作業？</h1>
+    <p id="heroSub">按一下就抽，交給箱子決定。</p>
+
+    <div class="panel draw">
+      <div class="row">
+        <div class="t" id="lbl-count">一次抽幾位</div>
+        <div class="stepper" role="group" aria-labelledby="lbl-count">
+          <button type="button" id="minus" aria-label="少抽一位">−</button>
+          <output id="count" aria-live="polite">3</output>
+          <button type="button" id="plus" aria-label="多抽一位">＋</button>
+        </div>
+      </div>
+      <div class="row">
+        <div class="t" id="lbl-rep">不重複抽<small>抽過的同學先跳過</small></div>
+        <button type="button" class="switch" id="norepeat" role="switch" aria-checked="true" aria-labelledby="lbl-rep"></button>
+      </div>
+      <div class="status">
+        <span id="status">範圍 <b>0</b> 人・已抽過 <b>0</b> 人</span>
+        <button type="button" class="btn sm yellow" id="restart">重新開始</button>
+      </div>
+      <button type="button" class="go" id="go">抽籤！</button>
+      <p class="note" id="note"></p>
+    </div>
+
+    <div class="res-head">
+      <h3>這次抽到</h3>
+      <button type="button" class="btn sm aqua" id="copy" hidden>複製結果</button>
+    </div>
+    <ul class="results" id="results"></ul>
+    <div class="empty" id="empty">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="14" y="26" width="36" height="28" rx="9" fill="#F6D27A" stroke="#3E3A39" stroke-width="3"/>
+        <rect x="10" y="17" width="44" height="12" rx="6" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+        <path d="M24 41h6M36 41h4" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+        <path d="M28 47 Q32 49 36 47" fill="none" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+      按下「抽籤！」，結果會出現在這裡。
+    </div>
+    <div class="sr" id="sr" aria-live="polite"></div>
+  </section>
+
+  <!-- 範圍 -->
+  <section id="scope" aria-labelledby="t-scope">
+    <h2 class="h2" id="t-scope">
+      <svg viewBox="0 0 30 30" aria-hidden="true"><rect x="3" y="4" width="24" height="22" rx="7" fill="#A8D3E6" stroke="#3E3A39" stroke-width="3"/><path d="M10 15l4 4 7-8" fill="none" stroke="#3E3A39" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      抽籤範圍
+    </h2>
+    <p class="lead">點班級就能加入或移出，只會從有勾選的班級裡抽。</p>
+    <div class="quick">
+      <button type="button" class="btn sm green" id="allOn">全校都抽</button>
+      <button type="button" class="btn sm" id="allOff">全部取消</button>
+      <span class="sum" id="scopeSum"></span>
+    </div>
+    <div id="grades"></div>
+  </section>
+
+  <!-- 紀錄 -->
+  <section id="log" aria-labelledby="t-log">
+    <h2 class="h2" id="t-log">
+      <svg viewBox="0 0 30 30" aria-hidden="true"><rect x="5" y="3" width="20" height="24" rx="6" fill="#B9DAA5" stroke="#3E3A39" stroke-width="3"/><path d="M10 11h10M10 18h6" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/></svg>
+      抽籤紀錄
+    </h2>
+    <p class="lead">最近的抽籤會留在這台裝置的瀏覽器裡。</p>
+    <ul class="log" id="logList"></ul>
+    <div class="empty" id="logEmpty" style="margin-top:14px">還沒有紀錄，抽一次就會出現。</div>
+    <div class="log-tools"><button type="button" class="btn sm" id="clearLog" hidden>清除紀錄</button></div>
+  </section>
+
+  </div>
+</main>
+
+<footer>
+  <svg viewBox="0 0 64 64" aria-hidden="true">
+    <rect x="11" y="26" width="42" height="30" rx="9" fill="#F6D27A" stroke="#3E3A39" stroke-width="3"/>
+    <rect x="7" y="17" width="50" height="12" rx="6" fill="#F2A497" stroke="#3E3A39" stroke-width="3"/>
+    <path d="M22 41q3 3 6 0M36 41q3 3 6 0" fill="none" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+  </svg>
+  名單已加密，只存在這個檔案和你的瀏覽器裡，不會上傳。<br><button type="button" class="btn sm" id="relock" style="margin-top:10px">鎖上名單</button>
+</footer>
+
+<script>
+const ENC = {"s": "2nevWHbelv0eiLTg8t4ZJg==", "i": "gC8x7nCuK2C+qfpg", "c": "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", "n": 600000, "v": "5ef38eb1"};
+
+const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+async function decryptRoster(pw) {
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(ENC.s), iterations: ENC.n, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(ENC.i) }, key, b64(ENC.c));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+let booted = false;
+function boot(ROSTER) {
+  if (booted) return; booted = true;
+  document.body.classList.remove("locked");
+  document.getElementById("lock").hidden = true;
+  document.getElementById("app").hidden = false;
+
+  const KEY = "hw-draw-v1";
+  const $ = (id) => document.getElementById(id);
+  const gradeOf = (n) => "高" + n.slice(-1);
+  const GRADES = ["高一", "高二", "高三"];
+  const GCLASS = { "高一": "g1", "高二": "g2", "高三": "g3" };
+
+  const classes = ROSTER.map((c) => ({ name: c.n, grade: gradeOf(c.n), students: c.s.map(([no, nm]) => ({ id: c.n + "-" + no, cls: c.n, no, name: nm })) }));
+  const byName = Object.fromEntries(classes.map((c) => [c.name, c]));
+  const total = classes.reduce((a, c) => a + c.students.length, 0);
+
+  /* ---------- 狀態與儲存 ---------- */
+  const st = { sel: classes.map((c) => c.name), count: 3, norepeat: true, drawn: [], log: [] };
+  try {
+    const r = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (r && typeof r === "object") {
+      if (Array.isArray(r.sel)) st.sel = r.sel.filter((n) => byName[n]);
+      if (Number.isInteger(r.count)) st.count = Math.min(10, Math.max(1, r.count));
+      if (typeof r.norepeat === "boolean") st.norepeat = r.norepeat;
+      if (Array.isArray(r.drawn)) st.drawn = r.drawn.filter((x) => typeof x === "string");
+      if (Array.isArray(r.log)) st.log = r.log.filter((e) => e && Array.isArray(e.items)).slice(0, 50);
+    }
+  } catch (e) {}
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+
+  /* ---------- 抽籤邏輯 ---------- */
+  const randInt = (n) => {
+    if (window.crypto && crypto.getRandomValues) {
+      const lim = Math.floor(0x100000000 / n) * n;
+      const buf = new Uint32Array(1);
+      do { crypto.getRandomValues(buf); } while (buf[0] >= lim);
+      return buf[0] % n;
+    }
+    return Math.floor(Math.random() * n);
+  };
+  const sample = (arr, k) => {
+    const a = arr.slice();
+    for (let i = 0; i < k; i++) { const j = i + randInt(a.length - i); [a[i], a[j]] = [a[j], a[i]]; }
+    return a.slice(0, k);
+  };
+  const pool = () => classes.filter((c) => st.sel.includes(c.name)).flatMap((c) => c.students);
+  const eligible = () => { const d = new Set(st.drawn); return st.norepeat ? pool().filter((s) => !d.has(s.id)) : pool(); };
+
+  /* ---------- 小工具 ---------- */
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const note = (t) => { $("note").textContent = t; };
+  const say = (t) => { $("sr").textContent = ""; setTimeout(() => { $("sr").textContent = t; }, 30); };
+  const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const stamp = (d) => `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+
+  /* ---------- 畫面 ---------- */
+  function renderStatus() {
+    const p = pool(); const d = new Set(st.drawn);
+    const used = p.filter((s) => d.has(s.id)).length;
+    $("status").innerHTML = "";
+    $("status").append("範圍 ", el("b", "", String(p.length)), " 人・已抽過 ", el("b", "", String(used)), " 人");
+    $("scopeSum").textContent = `已選 ${st.sel.length} 班・${p.length} 人`;
+    $("heroSub").textContent = `全校 ${total} 位同學，按一下就抽，交給箱子決定。`;
+    $("count").textContent = st.count;
+    $("minus").disabled = st.count <= 1;
+    $("plus").disabled = st.count >= 10;
+    $("norepeat").setAttribute("aria-checked", String(st.norepeat));
+  }
+
+  function renderScope() {
+    const root = $("grades"); root.innerHTML = "";
+    GRADES.forEach((g) => {
+      const list = classes.filter((c) => c.grade === g);
+      const box = el("div", "grade " + GCLASS[g]);
+      const head = el("div", "grade-h");
+      head.append(el("h3", "", g));
+      const allIn = list.every((c) => st.sel.includes(c.name));
+      const tog = el("button", "btn sm", allIn ? "整個年級取消" : "整個年級加入");
+      tog.type = "button";
+      tog.addEventListener("click", () => {
+        const names = list.map((c) => c.name);
+        st.sel = allIn ? st.sel.filter((n) => !names.includes(n)) : [...new Set([...st.sel, ...names])];
+        afterScope();
+      });
+      head.append(tog); box.append(head);
+      const chips = el("div", "chips");
+      list.forEach((c) => {
+        const b = el("button", "chip"); b.type = "button";
+        b.setAttribute("aria-pressed", String(st.sel.includes(c.name)));
+        b.append(c.name, el("small", "", c.students.length + "人"));
+        b.addEventListener("click", () => {
+          st.sel = st.sel.includes(c.name) ? st.sel.filter((n) => n !== c.name) : [...st.sel, c.name];
+          afterScope();
+        });
+        chips.append(b);
+      });
+      box.append(chips); root.append(box);
+    });
+  }
+  function afterScope() { save(); renderScope(); renderStatus(); note(""); }
+
+  function renderLog() {
+    const ul = $("logList"); ul.innerHTML = "";
+    st.log.forEach((e) => {
+      const li = el("li");
+      li.append(el("div", "when", e.t));
+      const names = el("div", "names");
+      e.items.forEach((it, i) => names.append(el("span", "tag c" + (i % 4), `${it.cls} ${it.no}號 ${it.name}`)));
+      li.append(names); ul.append(li);
+    });
+    $("logEmpty").hidden = st.log.length > 0;
+    $("clearLog").hidden = st.log.length === 0;
+  }
+
+  function cardsShell(n) {
+    const ul = $("results"); ul.innerHTML = "";
+    const cards = [];
+    for (let i = 0; i < n; i++) {
+      const li = el("li", "card c" + (i % 4));
+      const seat = el("span", "seat", "?");
+      const who = el("div", "who");
+      const nm = el("div", "nm", "…"); const cl = el("div", "cl", "");
+      who.append(nm, cl); li.append(seat, who); ul.append(li);
+      cards.push({ li, seat, nm, cl });
+    }
+    $("empty").hidden = true;
+    return cards;
+  }
+  const fillCard = (c, s) => { c.seat.textContent = s.no; c.nm.textContent = s.name; c.cl.textContent = `${s.cls}・${s.no} 號`; };
+
+  /* ---------- 抽！ ---------- */
+  let busy = false, lastText = "";
+  function draw() {
+    if (busy) return;
+    const p = pool();
+    if (!p.length) { note("還沒有選班級，到「範圍」勾選幾個班吧。"); return; }
+    const pickable = eligible();
+    if (!pickable.length) { note("範圍內的同學都抽過了，按「重新開始」再來一輪。"); return; }
+    const n = Math.min(st.count, pickable.length);
+    const picks = sample(pickable, n);
+    note(n < st.count ? `只剩 ${n} 位，全部抽出來了。` : "");
+
+    busy = true; $("go").disabled = true;
+    const cards = cardsShell(n);
+    const scene = $("scene");
+    const fastForward = reduced();
+
+    const finish = () => {
+      st.drawn = [...new Set([...st.drawn, ...picks.map((s) => s.id)])];
+      st.log.unshift({ t: stamp(new Date()), items: picks.map((s) => ({ cls: s.cls, no: s.no, name: s.name })) });
+      st.log = st.log.slice(0, 50);
+      save(); renderStatus(); renderLog();
+      lastText = `【作業抽查】${stamp(new Date())}\n` + picks.map((s) => `${s.cls} ${s.no}號 ${s.name}`).join("\n");
+      $("copy").hidden = false; $("copy").textContent = "複製結果";
+      say("抽到：" + picks.map((s) => `${s.cls} ${s.no}號 ${s.name}`).join("、"));
+      scene.classList.remove("is-drawing");
+      $("go").disabled = false; busy = false;
+    };
+
+    if (fastForward) {
+      cards.forEach((c, i) => fillCard(c, picks[i]));
+      finish();
+      return;
+    }
+
+    scene.classList.add("is-drawing");
+    cards.forEach((c) => c.li.classList.add("rolling"));
+    const roll = setInterval(() => {
+      cards.forEach((c) => { if (c.li.classList.contains("rolling")) { const s = p[randInt(p.length)]; c.seat.textContent = s.no; c.nm.textContent = s.name; c.cl.textContent = s.cls; } });
+    }, 70);
+    cards.forEach((c, i) => {
+      setTimeout(() => {
+        c.li.classList.remove("rolling");
+        fillCard(c, picks[i]);
+        c.li.classList.add("pop");
+        if (i === cards.length - 1) { clearInterval(roll); finish(); }
+      }, 900 + i * 280);
+    });
+  }
+
+  /* ---------- 事件 ---------- */
+  $("go").addEventListener("click", draw);
+  $("minus").addEventListener("click", () => { st.count = Math.max(1, st.count - 1); save(); renderStatus(); });
+  $("plus").addEventListener("click", () => { st.count = Math.min(10, st.count + 1); save(); renderStatus(); });
+  $("norepeat").addEventListener("click", () => { st.norepeat = !st.norepeat; save(); renderStatus(); note(""); });
+  $("restart").addEventListener("click", () => { st.drawn = []; save(); renderStatus(); note("已重新開始，每個人都有機會被抽到。"); });
+  $("allOn").addEventListener("click", () => { st.sel = classes.map((c) => c.name); afterScope(); });
+  $("allOff").addEventListener("click", () => { st.sel = []; afterScope(); });
+
+  $("copy").addEventListener("click", async () => {
+    const done = () => { $("copy").textContent = "已複製"; setTimeout(() => { $("copy").textContent = "複製結果"; }, 1600); };
+    try { await navigator.clipboard.writeText(lastText); done(); }
+    catch (e) {
+      const ta = el("textarea"); ta.value = lastText; ta.style.cssText = "position:fixed;opacity:0"; document.body.append(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (e2) {} ta.remove();
+    }
+  });
+
+  let armed = false, armTimer = 0;
+  $("clearLog").addEventListener("click", () => {
+    const b = $("clearLog");
+    if (!armed) { armed = true; b.textContent = "再按一次確認"; armTimer = setTimeout(() => { armed = false; b.textContent = "清除紀錄"; }, 3000); return; }
+    clearTimeout(armTimer); armed = false; b.textContent = "清除紀錄";
+    st.log = []; save(); renderLog();
+  });
+
+  /* 選單：捲到哪一區就標示哪一區 */
+  const links = [...document.querySelectorAll("[data-spy]")];
+  const mark = (id) => links.forEach((a) => { if (a.dataset.spy === id) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
+  mark("draw");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((ents) => { ents.forEach((e) => { if (e.isIntersecting) mark(e.target.id); }); }, { rootMargin: "-30% 0px -60% 0px" });
+    ["draw", "scope", "log"].forEach((id) => io.observe($(id)));
+  }
+
+  renderStatus(); renderScope(); renderLog();
+}
+
+/* ---------- 解鎖 ---------- */
+(() => {
+  const RK = "hw-roster-v1";
+  const $ = (id) => document.getElementById(id);
+  const showLock = (msg) => { $("lock").hidden = false; if (msg) $("lockNote").textContent = msg; };
+  if (!(window.crypto && crypto.subtle)) { showLock("這個瀏覽器不支援解鎖，請改用 Chrome、Safari 或 Edge，並用 https 網址開啟。"); return; }
+  try {
+    const c = JSON.parse(localStorage.getItem(RK) || "null");
+    if (c && c.v === ENC.v && Array.isArray(c.roster)) { boot(c.roster); return; }
+    localStorage.removeItem(RK);
+  } catch (e) {}
+  showLock("");
+  let working = false;
+  const go = async () => {
+    if (working) return;
+    const pw = $("pw").value;
+    if (!pw) { $("lockNote").textContent = "請輸入密碼。"; return; }
+    working = true; $("unlock").disabled = true; $("lockNote").textContent = "解鎖中…";
+    try {
+      const roster = await decryptRoster(pw);
+      try { localStorage.setItem(RK, JSON.stringify({ v: ENC.v, roster })); } catch (e) {}
+      $("pw").value = "";
+      boot(roster);
+    } catch (e) {
+      $("lockNote").textContent = "密碼不對，再試一次。";
+    }
+    working = false; $("unlock").disabled = false;
+  };
+  $("unlock").addEventListener("click", go);
+  $("pw").addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  $("relock").addEventListener("click", () => { try { localStorage.removeItem(RK); } catch (e) {} location.reload(); });
+})();
+</script>
+</body>
+</html>
